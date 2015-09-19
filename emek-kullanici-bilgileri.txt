@@ -1,0 +1,2 @@
+EMEK_KITAP_KULLANICI_ADI = "ornek@gmail.com"
+EMEK_KITAP_SIFRE = "orneksifre"
