@@ -82,17 +82,24 @@ class BookStore():
                 exit()
             else:
                 try:
-                    # publishing_house, author, book = find_book_id(entry)
-                    book, author, publishing_house, price, discount = self.book_shop_login(entry)
-                    ws.write(str(barcode_column) + str(counter), entry)
-                    ws.write(str(book_column) + str(counter), book)
-                    ws.write(str(author_column) + str(counter), author)
-                    ws.write(str(publisher_column) + str(counter), publishing_house)
-                    ws.write(str(count_column) + str(counter), 1)
-                    ws.write(str(price_column) + str(counter), price)
-                    ws.write(str(discount_column) + str(counter), discount)
-                    print "Girilen kitap sayisi %s" % str(counter - 1)
-
+                    book_dict = self.book_shop_login(entry)
+                    if 'book_name' and 'author_name' and 'publisher_name' and 'price' and 'discount' in book_dict.keys():
+                        book = book_dict['book_name']
+                        author = book_dict['author_name']
+                        publishing_house = book_dict['publisher_name']
+                        price = book_dict['price']
+                        discount = book_dict['discount']
+                        ws.write(str(barcode_column) + str(counter), entry)
+                        ws.write(str(book_column) + str(counter), book)
+                        ws.write(str(author_column) + str(counter), author)
+                        ws.write(str(publisher_column) + str(counter), publishing_house)
+                        ws.write(str(count_column) + str(counter), 1)
+                        ws.write(str(price_column) + str(counter), price)
+                        ws.write(str(discount_column) + str(counter), discount)
+                        print "Girilen kitap sayisi %s" % str(counter - 1)
+                    else:
+                        ws.write(str(barcode_column) + str(counter), entry)
+                        print "Girilen kitap sayisi %s" % str(counter - 1)
                     counter += 1
                 except AttributeError:
                     print "Yanlis barkod."
@@ -153,39 +160,46 @@ class BookStore():
         print "Lutfen bekleyiniz...\n"
         time.sleep(0.5)
         htmlstring = br.response().read()
+        try:
+            soup = BeautifulSoup(htmlstring)
+            price_div = soup.find("div", {"class": "liste-sepet"})
+            price_text = price_div.contents[1]
+            price = re.findall('\d+,\d+', price_text.text)[0]
 
-        soup = BeautifulSoup(htmlstring)
-        price_div = soup.find("div", {"class": "liste-sepet"})
-        price_text = price_div.contents[1]
-        price = re.findall('\d+,\d+', price_text.text)[0]
+            discount_div = soup.find("p", {"class": "urun-indirim"})
+            discount_text = discount_div.contents[0]
+            discount = discount_text.split(": %")[1]
 
-        discount_div = soup.find("p", {"class": "urun-indirim"})
-        discount_text = discount_div.contents[0]
-        discount = discount_text.split(": %")[1]
+            book_div = soup.find("p", {"class": "urun-ismi"})
+            book_long_text = book_div.contents[1]
+            book_name = book_long_text.text
 
-        book_div = soup.find("p", {"class": "urun-ismi"})
-        book_long_text = book_div.contents[1]
-        book_name = book_long_text.text
+            author = soup.find("p", {"class": "urun-yazar"})
+            author_long_text = author.contents[0]
+            author_name = author_long_text.text
 
-        author = soup.find("p", {"class": "urun-yazar"})
-        author_long_text = author.contents[0]
-        author_name = author_long_text.text
+            publisher = ''
+            for a in soup.findAll('a'):
+                if 'brand/product' in a['href']:
+                    publisher = a.text
 
-        publisher = ''
-        for a in soup.findAll('a'):
-            if 'brand/product' in a['href']:
-                publisher = a.text
+            self.clear_screen()
+            print "=============="
+            print "Kitap Adi: " + book_name
+            print "Yazar Adi: " + author_name
+            print "Yayinevi: " + publisher
+            print "Fiyat: " + price
+            print "Iskonto: " + discount
+            print "=============="
 
-        self.clear_screen()
-        print "=============="
-        print "Kitap Adi: " + book_name
-        print "Yazar Adi: " + author_name
-        print "Yayinevi: " + publisher
-        print "Fiyat: " + price
-        print "Iskonto: " + discount
-        print "=============="
+            return {'book_name': book_name, 'author_name': author_name, 'publisher_name': publisher, 'price': price,
+                    'discount': discount}
 
-        return book_name, author_name, publisher, price, discount
+        except:
+            print "Emek Kitap veritabaninda bu barkod numarali kitap bulunamadi."
+            return {'barcode': barcode}
+
+            # return book_name, author_name, publisher, price, discount
 
 
 def print_ascii():
